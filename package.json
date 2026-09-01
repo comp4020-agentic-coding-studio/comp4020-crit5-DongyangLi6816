@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "check": "pnpm typecheck && pnpm build && vitest run",
+    "check:crit5": "pnpm check && ! grep -rniE 'expect\\.fail|\\.(skip|todo)\\(' spec/*.test.ts && ! grep -rniE 'how to play|instructions|tutorial|how it works|the rules are|use the arrow keys' README.md index.html && git diff --quiet HEAD -- spec/invariants.test.ts",
     "check:evidence": "node scripts/check-evidence.ts",
     "test": "vitest run"
   },
