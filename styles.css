@@ -4,6 +4,7 @@
   --dirt: #7c5231;
   --dirt-lit: #9c6a41;
   --water: #3f8cf4;
+  --sand: #cdab74;
   --plant-dry: #1d3529;
   --plant-wet: #45d69a;
   --ink: #8b93a3;
@@ -92,6 +93,13 @@ h1 {
 
 .cell[data-cell="water"] {
   background: var(--water);
+}
+
+/* Pale and inert next to the dirt, which is warm and answers the pointer.
+   That difference is the only thing saying which of the two you can dig. */
+.cell[data-cell="sand"] {
+  background: var(--sand);
+  border-radius: 40% 40% 20% 20%;
 }
 
 /* A way out of the board. It has to read as depth from a standing start:

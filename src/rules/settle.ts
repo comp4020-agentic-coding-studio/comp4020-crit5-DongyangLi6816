@@ -8,10 +8,11 @@ import { at } from "./grid.ts";
 // Anything the simulation can advance: a board, plus what the plant has drunk.
 export type Sim = { readonly grid: Grid; readonly drunk: number };
 
-// A unit of water either lands somewhere, is drunk by the plant, or leaves.
+// A unit lands somewhere, is drunk by the plant, fills a drain in, or leaves.
 type Move =
   | { kind: "move"; x: number; y: number }
   | { kind: "drink" }
+  | { kind: "plug"; x: number; y: number }
   | { kind: "drain" };
 
 // Where a unit of water at (x, y) would end up moving by (dx, dy), or null if
@@ -55,12 +56,44 @@ function distanceToDrop(
   return null;
 }
 
+// Where sand goes: straight down, or off the side of a heap. Sand never flows
+// sideways, which is the whole of the difference between it and water --- and
+// the reason a heap of it stops water going that way.
+function sandTarget(grid: Grid, x: number, y: number, dx: number): Move | null {
+  const nx = x + dx;
+  const ny = y + 1;
+  if (nx < 0 || nx >= grid.w || ny >= grid.h) return null;
+  const cell = at(grid, nx, ny);
+  if (cell === "empty") return { kind: "move", x: nx, y: ny };
+  // Sand that reaches a drain fills it in. That is the only way a drain ever
+  // stops being one, and like every dig here, it cannot be taken back.
+  if (cell === "drain") return { kind: "plug", x: nx, y: ny };
+  return null;
+}
+
+// Nothing slips through a diagonal crack: a unit only moves off a corner when
+// the cell beside it is open too.
+function beside(grid: Grid, x: number, y: number, dx: number): boolean {
+  return at(grid, x + dx, y) === "empty";
+}
+
+function sandMove(grid: Grid, x: number, y: number): Move | null {
+  const down = sandTarget(grid, x, y, 0);
+  if (down) return down;
+  for (const dx of [-1, 1] as const) {
+    if (!beside(grid, x, y, dx)) continue;
+    const slide = sandTarget(grid, x, y, dx);
+    if (slide) return slide;
+  }
+  return null;
+}
+
 function waterMove(grid: Grid, x: number, y: number): Move | null {
   const down = target(grid, x, y, 0, 1);
   if (down) return down;
-  const downLeft = target(grid, x, y, -1, 1);
+  const downLeft = beside(grid, x, y, -1) ? target(grid, x, y, -1, 1) : null;
   if (downLeft) return downLeft;
-  const downRight = target(grid, x, y, 1, 1);
+  const downRight = beside(grid, x, y, 1) ? target(grid, x, y, 1, 1) : null;
   if (downRight) return downRight;
 
   const left = distanceToDrop(grid, x, y, -1);
@@ -73,8 +106,10 @@ function waterMove(grid: Grid, x: number, y: number): Move | null {
 
 function apply<T extends Sim>(sim: T, x: number, y: number, move: Move): T {
   const cells = sim.grid.cells.slice();
+  const moving = cells[y * sim.grid.w + x];
   cells[y * sim.grid.w + x] = "empty";
-  if (move.kind === "move") cells[move.y * sim.grid.w + move.x] = "water";
+  if (move.kind === "move") cells[move.y * sim.grid.w + move.x] = moving;
+  if (move.kind === "plug") cells[move.y * sim.grid.w + move.x] = "sand";
   return {
     ...sim,
     grid: { ...sim.grid, cells },
@@ -89,8 +124,10 @@ export function settleStep<T extends Sim>(sim: T): T | null {
   const { grid } = sim;
   for (let y = grid.h - 1; y >= 0; y--) {
     for (let x = 0; x < grid.w; x++) {
-      if (at(grid, x, y) !== "water") continue;
-      const move = waterMove(grid, x, y);
+      const cell = at(grid, x, y);
+      if (cell !== "water" && cell !== "sand") continue;
+      const move =
+        cell === "water" ? waterMove(grid, x, y) : sandMove(grid, x, y);
       if (move) return apply(sim, x, y, move);
     }
   }
