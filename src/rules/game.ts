@@ -17,11 +17,14 @@ export function countWater(grid: Grid): number {
   return grid.cells.filter((cell) => cell === "water").length;
 }
 
-// Won when the plant has drunk its fill. Lost when there is no water left on
-// the board and it hasn't — losing is exactly "you let it run away".
+// Won when the plant has drunk its fill. Lost when the water ran away, or when
+// there is nothing left to dig and the plant is still thirsty. Without that
+// second clause a board can stop being winnable without ever ending, and the
+// player is left holding a screen that will never do anything again.
 export function outcomeOf(game: Game): Outcome {
   if (game.drunk >= game.need) return "won";
   if (countWater(game.grid) === 0) return "lost";
+  if (!game.grid.cells.includes("dirt")) return "lost";
   return null;
 }
 

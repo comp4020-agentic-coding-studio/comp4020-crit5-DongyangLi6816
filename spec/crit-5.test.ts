@@ -4,6 +4,7 @@ import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
 import { dig } from "../src/rules/dig.ts";
 import { countWater, settled } from "../src/rules/game.ts";
+import { parseGrid } from "../src/rules/grid.ts";
 import { LEVELS, loadLevel } from "../src/rules/levels.ts";
 
 // C5 --- "A game". These answer this week's published spec, so they retire
@@ -95,6 +96,21 @@ describe("crit 5: it can be lost", () => {
     expect(LEVELS.length, "the last win is the end of the game").toBeGreaterThan(
       0,
     );
+  });
+
+  it("a board with nothing left to dig ends, even with water still on it", () => {
+    // Without this the water can come to rest somewhere useless and the page
+    // just sits there: unwinnable, but never over.
+    const stranded = settled({
+      grid: parseGrid(["#~#", "#.#", "###", "#P#"]),
+      drunk: 0,
+      need: 1,
+      level: 0,
+      ended: null,
+    });
+
+    expect(countWater(stranded.grid)).toBe(1);
+    expect(stranded.ended).toBe("lost");
   });
 
   it("digging anything but dirt changes nothing", () => {
