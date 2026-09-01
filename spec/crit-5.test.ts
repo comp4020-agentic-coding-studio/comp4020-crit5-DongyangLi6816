@@ -21,15 +21,15 @@ const DIST = resolve("dist");
 
 // The one dirt wall on level 2 that opens onto the bottom edge instead of the
 // plant, and a winning dig for each shipped level.
+// The one dirt wall on level 2 that opens onto the drain instead of the plant,
+// and a shortest winning line for each shipped level.
 const OFF_THE_BOARD = [4, 3] as const;
 const WINNING_DIGS: readonly (readonly (readonly [number, number])[])[] = [
   [[1, 1]],
   [[2, 3]],
-  // Level 3 is the ordering puzzle: the way down first, the water second.
-  [[2, 3], [2, 1]],
-  // Levels 4 and 5: drop the sand into the drain, then let the water out.
   [[3, 1], [1, 2]],
-  [[3, 1], [1, 2]],
+  [[2, 3], [1, 5], [4, 1], [1, 7]],
+  [[3, 3], [1, 5], [3, 5], [4, 7], [3, 1]],
 ];
 const html = readFileSync(resolve(DIST, "index.html"), "utf8");
 const doc = new JSDOM(html).window.document;
