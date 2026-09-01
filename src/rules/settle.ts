@@ -15,8 +15,9 @@ type Move =
   | { kind: "drain" };
 
 // Where a unit of water at (x, y) would end up moving by (dx, dy), or null if
-// something is in the way. The sides of the board are walls; the bottom is not,
-// which is the only way water is ever lost.
+// something is in the way. Every edge of the board is a wall: water is only
+// ever lost down a drain, which is a cell you can see before you let the water
+// anywhere near it.
 function target(
   grid: Grid,
   x: number,
@@ -27,11 +28,11 @@ function target(
   const nx = x + dx;
   const ny = y + dy;
   if (nx < 0 || nx >= grid.w) return null;
-  if (ny < 0) return null;
-  if (ny >= grid.h) return { kind: "drain" };
+  if (ny < 0 || ny >= grid.h) return null;
   const cell = at(grid, nx, ny);
   if (cell === "empty") return { kind: "move", x: nx, y: ny };
   if (cell === "plant") return { kind: "drink" };
+  if (cell === "drain") return { kind: "drain" };
   return null;
 }
 
@@ -47,7 +48,7 @@ function distanceToDrop(
   for (let d = 1; d < grid.w; d++) {
     const nx = x + dir * d;
     const cell = at(grid, nx, y);
-    if (cell === "plant") return d;
+    if (cell === "plant" || cell === "drain") return d;
     if (cell !== "empty") return null;
     if (target(grid, nx, y, 0, 1) !== null) return d;
   }

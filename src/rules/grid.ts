@@ -1,7 +1,7 @@
 // The board, and nothing else. No behaviour lives here — only the shape the
 // rules move things around on.
 
-export type Cell = "empty" | "dirt" | "rock" | "water" | "plant";
+export type Cell = "empty" | "dirt" | "rock" | "water" | "plant" | "drain";
 
 export type Grid = {
   readonly w: number;
@@ -15,6 +15,7 @@ const GLYPHS: Readonly<Record<string, Cell>> = {
   "#": "rock",
   "~": "water",
   P: "plant",
+  v: "drain",
 };
 
 // Levels are written as ASCII so a board reads the same in the source as it

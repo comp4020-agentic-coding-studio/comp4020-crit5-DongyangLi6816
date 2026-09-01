@@ -4,7 +4,7 @@ import type { Game } from "./game.ts";
 import { parseGrid } from "./grid.ts";
 
 // 1. There is one thing to dig, and digging lets the water down to the plant.
-// 2. Water that reaches the bottom edge is gone, and there is only just enough.
+// 2. A drain is a way out of the board, and there is only just enough water.
 export const LEVELS = [
   {
     need: 1,
@@ -24,7 +24,7 @@ export const LEVELS = [
       "#.d.d.#",
       "#.###.#",
       "#P###.#",
-      "#####.#",
+      "#####v#",
     ],
   },
 ] as const;
