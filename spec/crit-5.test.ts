@@ -27,6 +27,9 @@ const WINNING_DIGS: readonly (readonly (readonly [number, number])[])[] = [
   [[2, 3]],
   // Level 3 is the ordering puzzle: the way down first, the water second.
   [[2, 3], [2, 1]],
+  // Levels 4 and 5: drop the sand into the drain, then let the water out.
+  [[3, 1], [1, 2]],
+  [[3, 1], [1, 2]],
 ];
 const html = readFileSync(resolve(DIST, "index.html"), "utf8");
 const doc = new JSDOM(html).window.document;
