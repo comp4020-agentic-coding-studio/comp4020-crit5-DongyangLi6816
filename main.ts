@@ -25,9 +25,17 @@ const host = boardHost();
 
 let game: Game = loadLevel(0);
 let board: Board = mountBoard(host, game.grid);
-let busy = true;
+// Bumped every time a board is put up, so a dig meant for the last one is
+// never applied to the next.
+let boardId = 0;
 let finished = false;
 let idleTimer = 0;
+// How many digs are waiting their turn. While any are, whoever is watching is
+// ahead of the animation, so stop showing it to them.
+let waiting = 0;
+// Everything that changes the board happens in order, however fast the clicks
+// arrive.
+let queue: Promise<void> = Promise.resolve();
 
 const sleep = (ms: number) => new Promise((done) => setTimeout(done, ms));
 
@@ -44,17 +52,19 @@ function disarmHint(): void {
 }
 
 async function playFrames(frames: readonly Game[]): Promise<void> {
-  busy = true;
   disarmHint();
   for (const frame of frames) {
     game = frame;
+    if (waiting > 0) continue;
     paint(board, game);
     await sleep(FRAME_MS);
   }
+  paint(board, game);
 }
 
 async function startLevel(index: number): Promise<void> {
   finished = false;
+  boardId += 1;
   game = loadLevel(index);
   board = mountBoard(host, game.grid);
   paint(board, game);
@@ -64,50 +74,69 @@ async function startLevel(index: number): Promise<void> {
   await playFrames(settleToRest(game));
   game = { ...game, ended: outcomeOf(game) };
   paint(board, game);
-  busy = false;
   armHint();
 }
 
-async function handleDig(x: number, y: number): Promise<void> {
-  if (finished) {
-    await startLevel(0);
+async function play(x: number, y: number): Promise<void> {
+  const result = dig(game, x, y);
+  if (result.frames.length === 0) {
+    armHint();
     return;
   }
-  if (busy) return;
-  const result = dig(game, x, y);
-  if (result.frames.length === 0) return;
 
   await playFrames(result.frames);
   game = result.game;
   paint(board, game);
 
   if (game.ended === "won") {
-    await sleep(AFTER_WIN_MS);
+    await sleep(waiting > 0 ? 0 : AFTER_WIN_MS);
     const next = game.level + 1;
     if (next < LEVELS.length) {
       await startLevel(next);
     } else {
       finished = true;
+      boardId += 1;
       board.root.dataset.state = "finished";
     }
     return;
   }
 
   if (game.ended === "lost") {
-    await sleep(AFTER_LOSS_MS);
+    await sleep(waiting > 0 ? 0 : AFTER_LOSS_MS);
     await startLevel(game.level);
     return;
   }
 
-  busy = false;
   armHint();
+}
+
+// A dig is never dropped. If the water is still running, the click means "I
+// have seen enough of that" --- the board jumps to where it was going, and
+// then the dig lands. Dirt does not move while things settle, so the cell they
+// aimed at is still the cell they get.
+function request(x: number, y: number): void {
+  const meantFor = boardId;
+  waiting += 1;
+  queue = queue
+    .then(async () => {
+      waiting -= 1;
+      if (finished) {
+        await startLevel(0);
+        return;
+      }
+      if (boardId !== meantFor) return;
+      await play(x, y);
+    })
+    .catch((error: unknown) => {
+      console.error(error);
+    });
 }
 
 wireInput({
   host,
   getGame: () => game,
-  onDig: (x, y) => void handleDig(x, y),
+  onDig: request,
   onCursor: (index) => showCursor(board, index),
 });
 
-void startLevel(0);
+queue = queue.then(() => startLevel(0));
