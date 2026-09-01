@@ -5,6 +5,8 @@ import { parseGrid } from "./grid.ts";
 
 // 1. There is one thing to dig, and digging lets the water down to the plant.
 // 2. A drain is a way out of the board, and there is only just enough water.
+// 3. The order you open things in is the whole puzzle: let the water out
+//    before the way down is open and it goes to the drain instead.
 export const LEVELS = [
   {
     need: 1,
@@ -25,6 +27,17 @@ export const LEVELS = [
       "#.###.#",
       "#P###.#",
       "#####v#",
+    ],
+  },
+  {
+    need: 2,
+    rows: [
+      "##~~###",
+      "##d####",
+      "#.....#",
+      "##d##v#",
+      "##.####",
+      "##P####",
     ],
   },
 ] as const;

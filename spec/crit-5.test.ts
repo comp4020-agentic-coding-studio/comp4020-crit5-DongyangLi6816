@@ -24,6 +24,8 @@ const OFF_THE_BOARD = [4, 3] as const;
 const WINNING_DIGS: readonly (readonly (readonly [number, number])[])[] = [
   [[1, 1]],
   [[2, 3]],
+  // Level 3 is the ordering puzzle: the way down first, the water second.
+  [[2, 3], [2, 1]],
 ];
 const html = readFileSync(resolve(DIST, "index.html"), "utf8");
 const doc = new JSDOM(html).window.document;
