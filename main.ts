@@ -10,7 +10,8 @@ import { mountBoard, paint, showCursor, type Board } from "./src/ui/render.ts";
 
 // The pace the cause and the effect read at. Taste, not physics.
 const FRAME_MS = 80;
-const AFTER_WIN_MS = 800;
+// Long enough to watch the plant fill before the board is taken away.
+const AFTER_WIN_MS = 1200;
 const AFTER_LOSS_MS = 900;
 const IDLE_HINT_MS = 3000;
 
