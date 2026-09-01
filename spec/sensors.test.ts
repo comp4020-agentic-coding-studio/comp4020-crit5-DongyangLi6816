@@ -53,67 +53,128 @@ describe("sensor: every board comes to rest", () => {
   );
 });
 
-// Plays a level out every possible way. Small boards with one or two diggable
-// cells each, so this stays a handful of states — the cap is here so that a
-// level whose search blew up fails loudly instead of quietly getting slower.
+// Walks a level's whole game tree once and reads everything off it. Small
+// boards with a handful of diggable cells, so this stays cheap --- the cap is
+// here so a board whose search blew up fails loudly instead of quietly getting
+// slower.
 const SEARCH_CAP = 5000;
 
-function reachable(index: number): {
+type Reading = {
+  index: number;
   won: boolean;
   lost: boolean;
-  explored: number;
-} {
+  states: number;
+  // The shortest number of digs that wins: how far ahead the board makes you read.
+  digsToWin: number;
+  // How many opening digs leave a win still reachable. While this is 1 there is
+  // no decision on the board, only a cell to spot --- which is what "too easy"
+  // turned out to mean.
+  keeps: number;
+};
+
+function read(index: number): Reading {
   const start = settled(loadLevel(index));
   const key = (game: Game) => `${game.grid.cells.join("")}|${game.drunk}`;
-  const seen = new Set([key(start)]);
-  const queue = [start];
-  let won = false;
-  let lost = false;
-  let explored = 0;
+  const id = new Map([[key(start), 0]]);
+  const nodes: Game[] = [start];
+  const edges: number[][] = [[]];
+  const depth = [0];
+  const queue = [0];
 
-  while (queue.length > 0 && explored < SEARCH_CAP) {
-    const game = queue.shift() as Game;
-    explored += 1;
-    if (game.ended === "won") {
-      won = true;
-      continue;
-    }
-    if (game.ended === "lost") {
-      lost = true;
-      continue;
-    }
+  while (queue.length > 0 && nodes.length <= SEARCH_CAP) {
+    const from = queue.shift() as number;
+    const game = nodes[from];
+    if (game.ended !== null) continue;
     for (let y = 0; y < game.grid.h; y += 1) {
       for (let x = 0; x < game.grid.w; x += 1) {
         const next = dig(game, x, y).game;
-        if (next === game || seen.has(key(next))) continue;
-        seen.add(key(next));
-        queue.push(next);
+        if (next === game) continue;
+        const seen = id.get(key(next));
+        if (seen !== undefined) {
+          edges[from].push(seen);
+          continue;
+        }
+        const to = nodes.length;
+        id.set(key(next), to);
+        nodes.push(next);
+        edges.push([]);
+        depth.push(depth[from] + 1);
+        edges[from].push(to);
+        queue.push(to);
       }
     }
   }
 
-  return { won, lost, explored };
+  // Which boards can still reach a win, propagated back from the wins.
+  const alive = nodes.map((game) => game.ended === "won");
+  for (;;) {
+    let changed = false;
+    for (let i = 0; i < nodes.length; i += 1) {
+      if (alive[i] || !edges[i].some((j) => alive[j])) continue;
+      alive[i] = true;
+      changed = true;
+    }
+    if (!changed) break;
+  }
+
+  const wins = nodes.flatMap((game, i) => (game.ended === "won" ? [depth[i]] : []));
+  return {
+    index,
+    won: wins.length > 0,
+    lost: nodes.some((game) => game.ended === "lost"),
+    states: nodes.length,
+    digsToWin: wins.length > 0 ? Math.min(...wins) : Infinity,
+    keeps: edges[0].filter((j) => alive[j]).length,
+  };
 }
 
-describe("sensor: every level plays out the way it was designed to", () => {
-  const searched = LEVELS.map((_, index) => ({ index, ...reachable(index) }));
+// The first three levels teach one thing each; the rest are the game.
+const TEACHING = 3;
 
-  it.each(searched)("level $index has a way to win", ({ won }) => {
+describe("sensor: every level plays out the way it was designed to", () => {
+  const readings = LEVELS.map((_, index) => read(index));
+
+  it.each(readings)("level $index has a way to win", ({ won }) => {
     expect(won).toBe(true);
   });
 
-  it.each(searched)("level $index searches without blowing up", ({ explored }) => {
-    expect(explored).toBeLessThan(SEARCH_CAP);
+  it.each(readings)("level $index searches without blowing up", ({ states }) => {
+    expect(states).toBeLessThan(SEARCH_CAP);
   });
 
   // The first board is the one nobody has been told anything about, so nothing
   // it lets you do is allowed to be wrong.
   it("level 0 cannot be lost", () => {
-    expect(searched[0].lost).toBe(false);
+    expect(readings[0].lost).toBe(false);
   });
 
   // Every board after it has to have a wrong move in it, or the game is a toy.
-  it.each(searched.slice(1))("level $index can be lost", ({ lost }) => {
+  it.each(readings.slice(1))("level $index can be lost", ({ lost }) => {
     expect(lost).toBe(true);
   });
+
+  // A teaching level that grew a puzzle in it stops teaching. This is the only
+  // check that fails when a level gets *harder*.
+  it.each(readings.slice(0, TEACHING))(
+    "level $index stays learnable at a glance",
+    ({ digsToWin }) => {
+      expect(digsToWin).toBeLessThanOrEqual(2);
+    },
+  );
+
+  // And the rest have to stay hard. Measured, because "too easy" is not
+  // something the suite noticed on its own the first time round.
+  it.each(readings.slice(TEACHING))(
+    "level $index makes you read ahead",
+    ({ digsToWin }) => {
+      expect(digsToWin).toBeGreaterThanOrEqual(4);
+    },
+  );
+
+  it.each(readings.slice(TEACHING))(
+    "level $index offers a real choice, not one right cell",
+    ({ keeps }) => {
+      expect(keeps).toBeGreaterThanOrEqual(3);
+    },
+  );
 });
