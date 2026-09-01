@@ -1,70 +1,32 @@
 # Process overview
 
-<!-- TEMPLATE: this file is a shape to fill in, not a form. Replace everything
-     in it with your own overview, and delete this comment — `pnpm
-     check:evidence` will remind you if it's still here. -->
-
-A reading-guide to how the work came together --- a map to your process, not an
-essay about it. Markers read this file and follow its citations; they don't
-trawl the repo for evidence you didn't point at, so if a moment mattered, cite
-it.
-
-This file is the shape; the course site's
-[assessment page](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/topics/assessment/#what-you-submit)
-is the requirement, and its
-[word counts](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/topics/assessment/#word-counts)
-cover every deliverable.
-
 ## What I built
 
-One paragraph: the thing, and the idea behind it.
+**Trickle**, a browser game with one action: dig a cell of dirt, and the water
+finds its own way down to a thirsty plant. The water is finite and a dig cannot
+be taken back, so every click spends something. Five boards --- three teach one
+mechanic each, wordlessly, and two ask for a plan.
 
 ## The moments that mattered
 
-Three or four for an assignment; fewer is fine for a weekly prototype. Keep the
-list short so each moment has room to do all four jobs:
+**The way out of the board was invisible.** Playing level 2, I could not tell
+which channel led off the bottom edge; it looked like every other dark square.
+The obvious fix was a brighter colour. Instead I moved the rule onto the board:
+every edge became a wall, and water now only leaves down a drain the level
+draws, before you go anywhere near it.
+[`837a99a`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-DongyangLi6816/commit/837a99a)
 
-1. **what happened** --- the problem, or the thing that went wrong
-2. **what you did instead of the obvious thing** --- the call you made, and why
-   it beat the obvious one
-3. **how you knew it was right** --- the check you ran, the viewport you looked
-   at, what you read before accepting the diff
-4. **the citation** --- a commit or commit range, a `CLAUDE.md` change, a check
-   that went from red to green, a prompt paired with the commit it produced
+**A board could stop being winnable without ever ending.** Designing a level
+where sand can be aimed the wrong way, the page simply sat there --- water at
+rest somewhere useless, nothing left that would move it. Rather than patch that
+one board, I made it a rule: nothing left to dig and a thirsty plant is a loss.
+Now "play ends somewhere" is true of every board, not just the ones I checked.
+[`349c60c`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-DongyangLi6816/commit/349c60c)
 
-Jobs 2 and 3 are the ones the repo can't tell a reader on its own, so they're
-where the marks are. The strongest moments are the ones where a correction
-landed in the **harness** --- the standards and checks your work has to satisfy
---- rather than in a retry: a rule added to `CLAUDE.md`, a check wired up, an
-attempt thrown away. Retrying until it passes is the routine case, and changing
-what the work runs against is the skilled one.
-
-Cite each moment as a link whose text is the commit hash or range and whose
-target is this repo's commit or compare URL, so a reader clicks straight to the
-evidence:
-
-- one commit: [`a1b2c3d`](https://github.com/YOUR-ORG/YOUR-REPO/commit/a1b2c3d)
-- a range:
-  [`a1b2c3d...e4f5a6b`](https://github.com/YOUR-ORG/YOUR-REPO/compare/a1b2c3d...e4f5a6b)
-
-To pair a prompt with the commit it produced, quote the prompt (curated, not a
-full transcript) next to the citation:
-
-> the prompt, verbatim
-
-Screenshots are welcome where one carries the verification better than a
-sentence does. Commit the file to this repo and link it with a **relative**
-path, which is what makes it render on GitHub: `![alt text](docs/before.png)`.
-Images don't count towards the word count and don't replace the citation.
-
-## Before you ship
-
-`pnpm check:evidence` verifies your citations resolve to real commits, that a
-reflection entry the marker reads is in `reflections/`, and that your
-`CLAUDE.md` is there --- before a marker ever opens the file. It checks that
-your map is traceable, not that it is good: the marker judges whether your
-small, deliberately chosen set of moments shows real judgement and reflection. A
-green check is not a substitute for that curation.
-
-Images aren't checked: unlike a citation whose SHA doesn't resolve, a broken
-image is visible the moment this file is rendered on GitHub.
+**The suite was green while the game was a guessing game.** Told the levels
+were too easy, I wrote a solver that walks each board's whole game tree, and it
+named the fault my eyes had not: every level had exactly one opening that kept
+a win reachable. So the fix went into `check`, not into the levels alone ---
+teaching boards must stay winnable in two digs, the rest must need four and
+leave three openings alive.
+[`76c724e`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-DongyangLi6816/commit/76c724e)
