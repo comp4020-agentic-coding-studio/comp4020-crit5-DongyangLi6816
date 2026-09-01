@@ -3,6 +3,9 @@ import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { settleStep, settleToRest, MAX_SETTLE_STEPS } from "../src/rules/settle.ts";
 import { loadLevel, LEVELS } from "../src/rules/levels.ts";
+import { dig } from "../src/rules/dig.ts";
+import type { Game } from "../src/rules/game.ts";
+import { settled } from "../src/rules/game.ts";
 
 // Sensors, not contracts: these hold whatever the brief is, so they travel to
 // next week's repo. Each one is here because it protects something a passing
@@ -48,4 +51,69 @@ describe("sensor: every board comes to rest", () => {
       expect(frames.length).toBeLessThan(MAX_SETTLE_STEPS / 4);
     },
   );
+});
+
+// Plays a level out every possible way. Small boards with one or two diggable
+// cells each, so this stays a handful of states — the cap is here so that a
+// level whose search blew up fails loudly instead of quietly getting slower.
+const SEARCH_CAP = 5000;
+
+function reachable(index: number): {
+  won: boolean;
+  lost: boolean;
+  explored: number;
+} {
+  const start = settled(loadLevel(index));
+  const key = (game: Game) => `${game.grid.cells.join("")}|${game.drunk}`;
+  const seen = new Set([key(start)]);
+  const queue = [start];
+  let won = false;
+  let lost = false;
+  let explored = 0;
+
+  while (queue.length > 0 && explored < SEARCH_CAP) {
+    const game = queue.shift() as Game;
+    explored += 1;
+    if (game.ended === "won") {
+      won = true;
+      continue;
+    }
+    if (game.ended === "lost") {
+      lost = true;
+      continue;
+    }
+    for (let y = 0; y < game.grid.h; y += 1) {
+      for (let x = 0; x < game.grid.w; x += 1) {
+        const next = dig(game, x, y).game;
+        if (next === game || seen.has(key(next))) continue;
+        seen.add(key(next));
+        queue.push(next);
+      }
+    }
+  }
+
+  return { won, lost, explored };
+}
+
+describe("sensor: every level plays out the way it was designed to", () => {
+  const searched = LEVELS.map((_, index) => ({ index, ...reachable(index) }));
+
+  it.each(searched)("level $index has a way to win", ({ won }) => {
+    expect(won).toBe(true);
+  });
+
+  it.each(searched)("level $index searches without blowing up", ({ explored }) => {
+    expect(explored).toBeLessThan(SEARCH_CAP);
+  });
+
+  // The first board is the one nobody has been told anything about, so nothing
+  // it lets you do is allowed to be wrong.
+  it("level 0 cannot be lost", () => {
+    expect(searched[0].lost).toBe(false);
+  });
+
+  // Every board after it has to have a wrong move in it, or the game is a toy.
+  it.each(searched.slice(1))("level $index can be lost", ({ lost }) => {
+    expect(lost).toBe(true);
+  });
 });
