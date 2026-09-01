@@ -1,16 +1,157 @@
+:root {
+  --ground: #0f1218;
+  --rock: #262b36;
+  --dirt: #7c5231;
+  --dirt-lit: #9c6a41;
+  --water: #3f8cf4;
+  --plant-dry: #1d3529;
+  --plant-wet: #45d69a;
+  --ink: #8b93a3;
+  --cell: clamp(26px, min(11vw, 9vh), 58px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  padding: 2rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  background: var(--ground);
+  color: var(--ink);
   font-family: system-ui, sans-serif;
-  line-height: 1.6;
-  color: #1a1a1a;
+  -webkit-text-size-adjust: 100%;
+}
+
+header {
+  align-self: flex-end;
+  font-size: 0.75rem;
+}
+
+header a {
+  color: #4b5464;
+  text-decoration: none;
+}
+
+header a:hover,
+header a:focus-visible {
+  color: var(--ink);
 }
 
 main {
-  max-width: 40rem;
-  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  margin: auto 0;
 }
 
-a {
-  color: #0b5fff;
+h1 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: #4b5464;
+}
+
+#board {
+  display: grid;
+  grid-template-columns: repeat(var(--w, 1), var(--cell));
+  grid-template-rows: repeat(var(--h, 1), var(--cell));
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  outline: none;
+  transition: filter 400ms ease;
+}
+
+#board:focus-visible {
+  box-shadow: 0 0 0 2px #3a4353;
+}
+
+.cell {
+  position: relative;
+  border-radius: 3px;
+  background: var(--ground);
+  transition: background-color 70ms linear;
+}
+
+.cell[data-cell="rock"] {
+  background: var(--rock);
+}
+
+.cell[data-cell="dirt"] {
+  background: var(--dirt);
+}
+
+.cell[data-cell="water"] {
+  background: var(--water);
+}
+
+.cell[data-cell="plant"] {
+  background: var(--plant-dry);
+  overflow: hidden;
+}
+
+/* The plant filling up is the only progress meter there is. */
+.cell[data-cell="plant"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--plant-wet);
+  transform: scaleY(var(--fill, 0));
+  transform-origin: bottom;
+  transition: transform 260ms ease;
+}
+
+.cell[data-diggable="true"] {
+  cursor: pointer;
+}
+
+.cell[data-diggable="true"]:hover {
+  background: var(--dirt-lit);
+}
+
+.cell[data-cursor] {
+  outline: 2px solid #e7ebf2;
+  outline-offset: -2px;
+}
+
+/* Nothing touched for a few seconds: show what answers a finger, not how to
+   use it. */
+#board[data-hint="on"] .cell[data-diggable="true"] {
+  animation: breathe 1.8s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  50% {
+    background: var(--dirt-lit);
+  }
+}
+
+#board[data-state="lost"] {
+  filter: saturate(0.2);
+}
+
+#board[data-state="finished"] {
+  filter: brightness(1.15);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell,
+  .cell[data-cell="plant"]::after,
+  #board {
+    transition: none;
+  }
+
+  #board[data-hint="on"] .cell[data-diggable="true"] {
+    animation: none;
+    background: var(--dirt-lit);
+  }
 }
